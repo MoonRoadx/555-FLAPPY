@@ -574,7 +574,8 @@
 
         // Show/hide shop
         shopBtn.addEventListener('click', () => {
-            populateShop();
+            setShopTab('skins');
+            updateCoinsDisplay();
             shopOverlay.style.display = 'flex';
         });
 
