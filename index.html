@@ -121,26 +121,29 @@
                     
                     <!-- Difficulty selector -->
                     <div class="space-y-2">
-                        <p class="text-white font-semibold">Difficulté :</p>
+                        <p class="text-white font-semibold">Choisis ta difficulté :</p>
                         <div class="flex gap-2 justify-center">
                             <button onclick="setDifficulty('easy')" id="easyBtn" 
                                     class="difficulty-btn px-4 py-2 rounded-lg font-bold text-sm transition-all bg-gradient-to-r from-green-400 to-green-600 text-white shadow-lg">
-                                😊 Facile
+                                <div>😊 Facile</div>
+                                <div class="text-xs">+2pts | +1💰</div>
                             </button>
                             <button onclick="setDifficulty('normal')" id="normalBtn" 
                                     class="difficulty-btn px-4 py-2 rounded-lg font-bold text-sm transition-all bg-white/10 text-gray-300">
-                                ⚖️ Normal
+                                <div>⚖️ Normal</div>
+                                <div class="text-xs">+4pts | +2💰</div>
                             </button>
                             <button onclick="setDifficulty('hard')" id="hardBtn" 
                                     class="difficulty-btn px-4 py-2 rounded-lg font-bold text-sm transition-all bg-white/10 text-gray-300">
-                                🔥 Difficile
+                                <div>🔥 Difficile</div>
+                                <div class="text-xs">+7pts | +3💰</div>
                             </button>
                         </div>
                     </div>
 
                     <div class="text-white text-sm space-y-1 py-2">
                         <p>📱 Tapez l'écran pour sauter</p>
-                        <p class="text-green-400">10 points par tuyau ! 💯</p>
+                        <p class="text-green-400">Plus c'est dur, plus tu gagnes ! 💪</p>
                     </div>
                     <button id="startBtn" class="flex items-center gap-2 mx-auto px-8 py-3 bg-gradient-to-r from-green-400 to-emerald-500 text-white font-bold text-lg rounded-xl active:scale-95 transition-transform shadow-lg">
                         ▶ Commencer
@@ -699,13 +702,19 @@
 
         function buySkin(skinKey) {
             const skin = skins[skinKey];
+            console.log('Trying to buy skin:', skinKey, 'Price:', skin.price, 'Current coins:', coins);
+            
             if (coins >= skin.price && !skin.unlocked) {
                 coins -= skin.price;
                 skin.unlocked = true;
                 updateCoinsDisplay();
+                populateSkinsMenu();
                 populateShop();
                 playSound('score');
                 alert(`🎉 Skin ${skin.name} ${skin.emoji} débloqué !`);
+                
+                // Save skin unlock
+                localStorage.setItem(`flappy-skin-${skinKey}`, 'true');
             } else if (skin.unlocked) {
                 alert('Tu possèdes déjà ce skin !');
             } else {
@@ -715,10 +724,13 @@
 
         function buyBoost(boostKey) {
             const boost = boosts[boostKey];
+            console.log('Trying to buy boost:', boostKey, 'Price:', boost.price, 'Current coins:', coins);
+            
             if (coins >= boost.price) {
                 coins -= boost.price;
                 boost.quantity++;
                 updateCoinsDisplay();
+                saveBoostQuantity(boostKey);
                 populateShop();
                 updateBoostsSelector();
                 playSound('score');
@@ -727,6 +739,14 @@
                 alert(`Pas assez de coins ! Il te faut ${boost.price - coins} coins de plus.`);
             }
         }
+
+        // Load saved skins
+        Object.keys(skins).forEach(key => {
+            const saved = localStorage.getItem(`flappy-skin-${key}`);
+            if (saved === 'true') {
+                skins[key].unlocked = true;
+            }
+        });
 
         // Leaderboard system
         async function loadLeaderboard() {
