@@ -66,6 +66,12 @@
                     <span class="text-lg">🏆</span>
                     <span class="font-bold">Record: <span id="highScore">0</span></span>
                 </div>
+                <button id="pauseBtn" class="p-2 bg-blue-500/20 border border-blue-500/30 rounded-lg active:bg-blue-500/40 transition-colors hidden">
+                    <span class="text-xl" id="pauseIcon">⏸️</span>
+                </button>
+                <button id="leaderboardBtn" class="p-2 bg-amber-500/20 border border-amber-500/30 rounded-lg active:bg-amber-500/40 transition-colors">
+                    <span class="text-xl">🏅</span>
+                </button>
                 <button id="shopBtn" class="p-2 bg-purple-500/20 border border-purple-500/30 rounded-lg active:bg-purple-500/40 transition-colors">
                     <span class="text-xl">🛒</span>
                 </button>
@@ -76,6 +82,8 @@
                     <span id="soundIcon" class="text-xl">🔊</span>
                 </button>
             </div>
+            <!-- Active boosts display -->
+            <div id="activeBoostsDisplay" class="flex gap-2 justify-center mt-2 flex-wrap"></div>
         </div>
 
         <div class="game-container">
@@ -83,12 +91,33 @@
                     class="border-y-4 border-green-400/30 shadow-2xl bg-sky-400 touch-none">
             </canvas>
 
+            <!-- Pause overlay -->
+            <div id="pauseOverlay" class="absolute inset-0 bg-black/70 backdrop-blur-sm flex-col items-center justify-center hidden" style="z-index: 100;">
+                <div class="text-center space-y-6 p-8 bg-white/10 rounded-2xl border-2 border-blue-400/50 mx-4">
+                    <h2 class="text-4xl font-bold text-white">⏸️ Pause</h2>
+                    <div class="text-white text-lg space-y-2">
+                        <p>Score actuel: <span class="font-bold text-green-400" id="pauseScore">0</span></p>
+                    </div>
+                    <button id="resumeBtn" class="flex items-center gap-2 mx-auto px-8 py-3 bg-gradient-to-r from-blue-400 to-blue-600 text-white font-bold text-lg rounded-xl active:scale-95 transition-transform shadow-lg">
+                        ▶️ Reprendre
+                    </button>
+                    <button id="quitBtn" class="flex items-center gap-2 mx-auto px-8 py-3 bg-gradient-to-r from-red-400 to-red-600 text-white font-bold text-sm rounded-xl active:scale-95 transition-transform">
+                        🏠 Quitter
+                    </button>
+                </div>
+            </div>
+
             <!-- Menu overlay -->
             <div id="menuOverlay" class="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center">
                 <div class="text-center space-y-4 p-4 w-full">
                     <h2 class="text-3xl font-bold text-white mb-2">
                         Prêt à voler ? 🚀
                     </h2>
+                    
+                    <!-- Boosts selector -->
+                    <div id="boostsSelector" class="space-y-2 mb-4">
+                        <!-- Will be populated -->
+                    </div>
                     
                     <!-- Difficulty selector -->
                     <div class="space-y-2">
@@ -120,7 +149,7 @@
             </div>
 
             <!-- Skins menu overlay -->
-            <div id="skinsOverlay" class="absolute inset-0 bg-black/70 backdrop-blur-sm flex-col items-center justify-center hidden overflow-y-auto">
+            <div id="skinsOverlay" class="absolute inset-0 bg-black/70 backdrop-blur-sm flex-col items-center justify-center hidden overflow-y-auto" style="z-index: 200;">
                 <div class="text-center space-y-4 p-4 w-full max-w-md mx-auto my-4">
                     <div class="flex items-center justify-between mb-4">
                         <h2 class="text-2xl font-bold text-white">Skins 👕</h2>
@@ -134,7 +163,7 @@
             </div>
 
             <!-- Shop overlay -->
-            <div id="shopOverlay" class="absolute inset-0 bg-black/70 backdrop-blur-sm flex-col items-center justify-center hidden overflow-y-auto">
+            <div id="shopOverlay" class="absolute inset-0 bg-black/70 backdrop-blur-sm flex-col items-center justify-center hidden overflow-y-auto" style="z-index: 200;">
                 <div class="text-center space-y-4 p-4 w-full max-w-md mx-auto my-4">
                     <div class="flex items-center justify-between mb-4">
                         <h2 class="text-2xl font-bold text-white">Shop 🛒</h2>
@@ -157,6 +186,25 @@
                     
                     <div id="shopContent" class="space-y-3">
                         <!-- Shop items will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leaderboard overlay -->
+            <div id="leaderboardOverlay" class="absolute inset-0 bg-black/70 backdrop-blur-sm flex-col items-center justify-center hidden overflow-y-auto" style="z-index: 200;">
+                <div class="text-center space-y-4 p-4 w-full max-w-md mx-auto my-4">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-2xl font-bold text-white">🏅 Leaderboard</h2>
+                        <button id="closeLeaderboardBtn" class="text-white text-3xl">&times;</button>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <input type="text" id="playerNameInput" placeholder="Ton pseudo..." maxlength="15"
+                               class="w-full px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-center placeholder-gray-400 focus:outline-none focus:border-green-400">
+                    </div>
+                    
+                    <div id="leaderboardContent" class="space-y-2">
+                        <p class="text-white">Chargement...</p>
                     </div>
                 </div>
             </div>
@@ -192,14 +240,22 @@
         const gameOverOverlay = document.getElementById('gameOverOverlay');
         const skinsOverlay = document.getElementById('skinsOverlay');
         const shopOverlay = document.getElementById('shopOverlay');
+        const leaderboardOverlay = document.getElementById('leaderboardOverlay');
+        const pauseOverlay = document.getElementById('pauseOverlay');
         const startBtn = document.getElementById('startBtn');
         const restartBtn = document.getElementById('restartBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resumeBtn = document.getElementById('resumeBtn');
+        const quitBtn = document.getElementById('quitBtn');
         const soundBtn = document.getElementById('soundBtn');
         const skinsBtn = document.getElementById('skinsBtn');
         const shopBtn = document.getElementById('shopBtn');
+        const leaderboardBtn = document.getElementById('leaderboardBtn');
         const closeSkinsBtn = document.getElementById('closeSkinsBtn');
         const closeShopBtn = document.getElementById('closeShopBtn');
+        const closeLeaderboardBtn = document.getElementById('closeLeaderboardBtn');
         const soundIcon = document.getElementById('soundIcon');
+        const pauseIcon = document.getElementById('pauseIcon');
         const highScoreEl = document.getElementById('highScore');
         const coinsDisplay = document.getElementById('coinsDisplay');
         const shopCoinsDisplay = document.getElementById('shopCoinsDisplay');
@@ -208,6 +264,11 @@
         const difficultyBadge = document.getElementById('difficultyBadge');
         const skinsList = document.getElementById('skinsList');
         const shopContent = document.getElementById('shopContent');
+        const leaderboardContent = document.getElementById('leaderboardContent');
+        const playerNameInput = document.getElementById('playerNameInput');
+        const boostsSelector = document.getElementById('boostsSelector');
+        const activeBoostsDisplay = document.getElementById('activeBoostsDisplay');
+        const pauseScore = document.getElementById('pauseScore');
 
         // Load character image
         const characterImg = new Image();
@@ -412,10 +473,10 @@
 
         // Boosts system
         const boosts = {
-            shield: { name: 'Bouclier', emoji: '🛡️', description: 'Protège d\'un choc', price: 50, quantity: 0 },
-            slowmo: { name: 'Ralenti', emoji: '⏱️', description: '5 sec de slow-mo', price: 75, quantity: 0 },
-            magnet: { name: 'Aimant', emoji: '🧲', description: 'Attire les pièces', price: 100, quantity: 0 },
-            doubleCoins: { name: 'x2 Coins', emoji: '💎', description: 'Double coins 1 partie', price: 150, quantity: 0 }
+            shield: { name: 'Bouclier', emoji: '🛡️', description: 'Protège d\'un choc', price: 50, quantity: 0, duration: null },
+            slowmo: { name: 'Ralenti', emoji: '⏱️', description: '5 sec de slow-mo', price: 75, quantity: 0, duration: 5000 },
+            magnet: { name: 'Aimant', emoji: '🧲', description: 'Attire les pièces', price: 100, quantity: 0, duration: 10000 },
+            doubleCoins: { name: 'x2 Coins', emoji: '💎', description: 'Double coins 1 partie', price: 150, quantity: 0, duration: null }
         };
 
         // Economy system
@@ -426,6 +487,12 @@
             magnet: false,
             doubleCoins: false
         };
+        let boostTimers = {};
+        let playerName = localStorage.getItem('flappy-player-name') || '';
+
+        if (playerName) {
+            playerNameInput.value = playerName;
+        }
 
         function updateCoinsDisplay() {
             coinsDisplay.textContent = coins;
@@ -439,7 +506,63 @@
             updateCoinsDisplay();
         }
 
+        // Boost activation
+        function activateBoost(boostKey) {
+            if (boosts[boostKey].quantity <= 0) return;
+            
+            boosts[boostKey].quantity--;
+            activeBoosts[boostKey] = true;
+            
+            const duration = boosts[boostKey].duration;
+            if (duration) {
+                if (boostTimers[boostKey]) clearTimeout(boostTimers[boostKey]);
+                boostTimers[boostKey] = setTimeout(() => {
+                    activeBoosts[boostKey] = false;
+                    updateActiveBoostsDisplay();
+                }, duration);
+            }
+            
+            updateActiveBoostsDisplay();
+            updateBoostsSelector();
+        }
+
+        function updateActiveBoostsDisplay() {
+            activeBoostsDisplay.innerHTML = '';
+            Object.keys(activeBoosts).forEach(key => {
+                if (activeBoosts[key]) {
+                    const span = document.createElement('span');
+                    span.className = 'bg-purple-500/30 px-2 py-1 rounded text-xs border border-purple-500/50';
+                    span.textContent = boosts[key].emoji + ' ' + boosts[key].name;
+                    activeBoostsDisplay.appendChild(span);
+                }
+            });
+        }
+
+        function updateBoostsSelector() {
+            boostsSelector.innerHTML = '<p class="text-white font-semibold text-sm">Activer un boost :</p>';
+            const container = document.createElement('div');
+            container.className = 'flex gap-2 justify-center flex-wrap';
+            
+            Object.keys(boosts).forEach(key => {
+                const boost = boosts[key];
+                if (boost.quantity > 0) {
+                    const btn = document.createElement('button');
+                    btn.className = 'px-3 py-2 bg-purple-500/30 border border-purple-500/50 rounded-lg text-white text-xs font-bold active:scale-95 transition-transform';
+                    btn.innerHTML = `${boost.emoji} ${boost.name} (${boost.quantity})`;
+                    btn.onclick = () => activateBoost(key);
+                    container.appendChild(btn);
+                }
+            });
+            
+            if (container.children.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 text-xs">Achète des boosts dans le shop !</p>';
+            }
+            
+            boostsSelector.appendChild(container);
+        }
+
         updateCoinsDisplay();
+        updateBoostsSelector();
 
         // Populate skins menu
         function populateSkinsMenu() {
@@ -565,6 +688,7 @@
                 boost.quantity++;
                 updateCoinsDisplay();
                 populateShop();
+                updateBoostsSelector();
                 playSound('score');
                 alert(`✅ ${boost.emoji} ${boost.name} acheté ! Stock: ${boost.quantity}`);
             } else {
@@ -572,7 +696,83 @@
             }
         }
 
-        // Show/hide shop
+        // Leaderboard system
+        async function loadLeaderboard() {
+            try {
+                const result = await window.storage.get('flappy-leaderboard-global', true);
+                if (result) {
+                    const data = JSON.parse(result.value);
+                    displayLeaderboard(data.sort((a, b) => b.score - a.score).slice(0, 20));
+                } else {
+                    displayLeaderboard([]);
+                }
+            } catch (error) {
+                displayLeaderboard([]);
+            }
+        }
+
+        function displayLeaderboard(data) {
+            if (data.length === 0) {
+                leaderboardContent.innerHTML = '<p class="text-gray-400">Aucun score enregistré. Sois le premier ! 🏆</p>';
+                return;
+            }
+
+            leaderboardContent.innerHTML = '';
+            data.forEach((entry, idx) => {
+                const div = document.createElement('div');
+                const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
+                div.className = `flex items-center justify-between p-3 rounded-lg ${
+                    idx < 3 ? 'bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border border-yellow-500/30' : 'bg-white/5'
+                }`;
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="font-bold ${idx < 3 ? 'text-yellow-400' : 'text-gray-400'} text-lg">${medal}</span>
+                        <div class="text-left">
+                            <div class="text-white font-bold">${entry.name}</div>
+                            <div class="text-xs text-gray-400">${entry.difficulty || '⚖️'} • ${entry.skin || '🟢'}</div>
+                        </div>
+                    </div>
+                    <span class="text-white font-bold text-lg">${entry.score}</span>
+                `;
+                leaderboardContent.appendChild(div);
+            });
+        }
+
+        async function saveToLeaderboard(score) {
+            const name = playerNameInput.value.trim() || 'Anonyme';
+            localStorage.setItem('flappy-player-name', name);
+            
+            try {
+                const result = await window.storage.get('flappy-leaderboard-global', true);
+                let leaderboard = result ? JSON.parse(result.value) : [];
+                
+                leaderboard.push({
+                    name: name,
+                    score: score,
+                    date: new Date().toISOString(),
+                    skin: skins[currentSkin].emoji,
+                    difficulty: difficulties[currentDifficulty].name
+                });
+                
+                leaderboard = leaderboard.sort((a, b) => b.score - a.score).slice(0, 100);
+                await window.storage.set('flappy-leaderboard-global', JSON.stringify(leaderboard), true);
+                
+                return true;
+            } catch (error) {
+                console.error('Leaderboard save error:', error);
+                return false;
+            }
+        }
+
+        // Show/hide leaderboard
+        leaderboardBtn.addEventListener('click', () => {
+            loadLeaderboard();
+            leaderboardOverlay.style.display = 'flex';
+        });
+
+        closeLeaderboardBtn.addEventListener('click', () => {
+            leaderboardOverlay.style.display = 'none';
+        });
         shopBtn.addEventListener('click', () => {
             setShopTab('skins');
             updateCoinsDisplay();
@@ -613,6 +813,13 @@
             score = 0;
             particles = [];
             trail = [];
+            
+            // Reset one-time boosts
+            if (activeBoosts.doubleCoins) {
+                activeBoosts.doubleCoins = false;
+            }
+            
+            updateActiveBoostsDisplay();
         }
 
         // Jump
@@ -622,6 +829,7 @@
             if (gameState === 'menu') {
                 gameState = 'playing';
                 menuOverlay.style.display = 'none';
+                pauseBtn.classList.remove('hidden');
                 initGame();
                 playSound('jump');
             } else if (gameState === 'playing') {
@@ -630,14 +838,48 @@
             } else if (gameState === 'gameOver') {
                 gameState = 'playing';
                 gameOverOverlay.style.display = 'none';
+                pauseBtn.classList.remove('hidden');
                 initGame();
                 playSound('jump');
             }
         }
 
+        // Pause system
+        function togglePause() {
+            if (gameState === 'playing') {
+                gameState = 'paused';
+                pauseIcon.textContent = '▶️';
+                pauseScore.textContent = score;
+                pauseOverlay.style.display = 'flex';
+            } else if (gameState === 'paused') {
+                gameState = 'playing';
+                pauseIcon.textContent = '⏸️';
+                pauseOverlay.style.display = 'none';
+            }
+        }
+
+        pauseBtn.addEventListener('click', togglePause);
+        resumeBtn.addEventListener('click', togglePause);
+        
+        quitBtn.addEventListener('click', () => {
+            gameState = 'menu';
+            pauseOverlay.style.display = 'none';
+            menuOverlay.style.display = 'flex';
+            pauseBtn.classList.add('hidden');
+            initGame();
+        });
+
         // Check collision
         function checkCollision() {
             const settings = difficulties[currentDifficulty];
+            
+            // Shield protection
+            if (activeBoosts.shield) {
+                activeBoosts.shield = false;
+                updateActiveBoostsDisplay();
+                createParticles(bird.x + CHARACTER_SIZE / 2, bird.y + CHARACTER_SIZE / 2, 'unlock');
+                return false;
+            }
             
             if (bird.y + CHARACTER_SIZE > canvas.height || bird.y < 0) {
                 return true;
@@ -839,16 +1081,24 @@
         }
 
         // Event listeners
-        canvas.addEventListener('click', jump);
+        canvas.addEventListener('click', () => {
+            if (gameState !== 'paused') jump();
+        });
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            jump();
+            if (gameState !== 'paused') jump();
         });
 
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Space' || e.code === 'ArrowUp') {
                 e.preventDefault();
-                jump();
+                if (gameState !== 'paused') jump();
+            }
+            if (e.code === 'Escape' || e.code === 'KeyP') {
+                e.preventDefault();
+                if (gameState === 'playing' || gameState === 'paused') {
+                    togglePause();
+                }
             }
         });
 
