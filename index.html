@@ -5,8 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#0f172a">
-    <title>Flappy CZ 💰</title>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#22c55e">
+    <meta name="description" content="Flappy CZ - Jeu Flappy Bird avec crypto style. Gagnez des coins, débloquez des skins et battez vos records !">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+    <title>Flappy CZ 💰 - Play Now!</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         * {
@@ -129,6 +133,34 @@
                 </div>
             </div>
 
+            <!-- Shop overlay -->
+            <div id="shopOverlay" class="absolute inset-0 bg-black/70 backdrop-blur-sm flex-col items-center justify-center hidden overflow-y-auto">
+                <div class="text-center space-y-4 p-4 w-full max-w-md mx-auto my-4">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-2xl font-bold text-white">Shop 🛒</h2>
+                        <button id="closeShopBtn" class="text-white text-3xl">&times;</button>
+                    </div>
+                    
+                    <div class="bg-yellow-500/20 px-4 py-2 rounded-lg border border-yellow-500/30 mb-4">
+                        <span class="text-white font-bold">💰 Tes coins: <span id="shopCoinsDisplay">0</span></span>
+                    </div>
+
+                    <!-- Shop tabs -->
+                    <div class="flex gap-2 mb-4">
+                        <button onclick="setShopTab('skins')" id="shopTabSkins" class="shop-tab flex-1 px-4 py-2 rounded-lg bg-purple-500/30 text-white font-bold">
+                            👕 Skins
+                        </button>
+                        <button onclick="setShopTab('boosts')" id="shopTabBoosts" class="shop-tab flex-1 px-4 py-2 rounded-lg bg-white/10 text-gray-300 font-bold">
+                            ⚡ Boosts
+                        </button>
+                    </div>
+                    
+                    <div id="shopContent" class="space-y-3">
+                        <!-- Shop items will be populated here -->
+                    </div>
+                </div>
+            </div>
+
             <!-- Game Over overlay -->
             <div id="gameOverOverlay" class="absolute inset-0 bg-black/70 backdrop-blur-sm flex-col items-center justify-center hidden">
                 <div class="text-center space-y-4 p-6 bg-white/10 rounded-2xl border-2 border-red-400/50 mx-4">
@@ -159,17 +191,23 @@
         const menuOverlay = document.getElementById('menuOverlay');
         const gameOverOverlay = document.getElementById('gameOverOverlay');
         const skinsOverlay = document.getElementById('skinsOverlay');
+        const shopOverlay = document.getElementById('shopOverlay');
         const startBtn = document.getElementById('startBtn');
         const restartBtn = document.getElementById('restartBtn');
         const soundBtn = document.getElementById('soundBtn');
         const skinsBtn = document.getElementById('skinsBtn');
+        const shopBtn = document.getElementById('shopBtn');
         const closeSkinsBtn = document.getElementById('closeSkinsBtn');
+        const closeShopBtn = document.getElementById('closeShopBtn');
         const soundIcon = document.getElementById('soundIcon');
         const highScoreEl = document.getElementById('highScore');
+        const coinsDisplay = document.getElementById('coinsDisplay');
+        const shopCoinsDisplay = document.getElementById('shopCoinsDisplay');
         const finalScoreEl = document.getElementById('finalScore');
         const finalHighScoreEl = document.getElementById('finalHighScore');
         const difficultyBadge = document.getElementById('difficultyBadge');
         const skinsList = document.getElementById('skinsList');
+        const shopContent = document.getElementById('shopContent');
 
         // Load character image
         const characterImg = new Image();
@@ -361,13 +399,47 @@
 
         // Skins system
         const skins = {
-            green: { color: '#22c55e', name: 'OG Green', emoji: '🟢', unlocked: true, required: 0 },
-            gold: { color: '#fbbf24', name: 'Golden', emoji: '🟡', unlocked: false, required: 50 },
-            purple: { color: '#a855f7', name: 'Purple', emoji: '🟣', unlocked: false, required: 100 },
-            red: { color: '#ef4444', name: 'Fire', emoji: '🔴', unlocked: false, required: 200 },
-            blue: { color: '#3b82f6', name: 'Ice', emoji: '🔵', unlocked: false, required: 300 }
+            green: { color: '#22c55e', name: 'OG Green', emoji: '🟢', unlocked: true, price: 0 },
+            gold: { color: '#fbbf24', name: 'Golden', emoji: '🟡', unlocked: false, price: 100 },
+            purple: { color: '#a855f7', name: 'Purple', emoji: '🟣', unlocked: false, price: 250 },
+            red: { color: '#ef4444', name: 'Fire', emoji: '🔴', unlocked: false, price: 500 },
+            blue: { color: '#3b82f6', name: 'Ice', emoji: '🔵', unlocked: false, price: 750 },
+            rainbow: { color: 'linear-gradient(45deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3)', name: 'Rainbow', emoji: '🌈', unlocked: false, price: 1000 },
+            dark: { color: '#1f2937', name: 'Shadow', emoji: '⚫', unlocked: false, price: 1500 },
+            pink: { color: '#ec4899', name: 'Bubblegum', emoji: '🩷', unlocked: false, price: 2000 }
         };
         let currentSkin = 'green';
+
+        // Boosts system
+        const boosts = {
+            shield: { name: 'Bouclier', emoji: '🛡️', description: 'Protège d\'un choc', price: 50, quantity: 0 },
+            slowmo: { name: 'Ralenti', emoji: '⏱️', description: '5 sec de slow-mo', price: 75, quantity: 0 },
+            magnet: { name: 'Aimant', emoji: '🧲', description: 'Attire les pièces', price: 100, quantity: 0 },
+            doubleCoins: { name: 'x2 Coins', emoji: '💎', description: 'Double coins 1 partie', price: 150, quantity: 0 }
+        };
+
+        // Economy system
+        let coins = parseInt(localStorage.getItem('flappy-coins')) || 0;
+        let activeBoosts = {
+            shield: false,
+            slowmo: false,
+            magnet: false,
+            doubleCoins: false
+        };
+
+        function updateCoinsDisplay() {
+            coinsDisplay.textContent = coins;
+            shopCoinsDisplay.textContent = coins;
+            localStorage.setItem('flappy-coins', coins);
+        }
+
+        function addCoins(amount) {
+            const multiplier = activeBoosts.doubleCoins ? 2 : 1;
+            coins += amount * multiplier;
+            updateCoinsDisplay();
+        }
+
+        updateCoinsDisplay();
 
         // Populate skins menu
         function populateSkinsMenu() {
@@ -387,7 +459,7 @@
                     <div class="text-4xl mb-2">${skin.emoji}</div>
                     <div class="text-white font-bold text-sm">${skin.name}</div>
                     <div class="text-xs ${skin.unlocked ? 'text-green-400' : 'text-gray-400'}">
-                        ${skin.unlocked ? '✓ Débloqué' : `🔒 ${skin.required} pts`}
+                        ${skin.unlocked ? '✓ Débloqué' : `🔒 ${skin.price} coins`}
                     </div>
                 `;
                 
@@ -401,6 +473,114 @@
                 skinsList.appendChild(div);
             });
         }
+
+        // Shop system
+        let currentShopTab = 'skins';
+
+        function setShopTab(tab) {
+            currentShopTab = tab;
+            document.querySelectorAll('.shop-tab').forEach(btn => {
+                btn.className = 'shop-tab flex-1 px-4 py-2 rounded-lg bg-white/10 text-gray-300 font-bold';
+            });
+            document.getElementById(`shopTab${tab.charAt(0).toUpperCase() + tab.slice(1)}`).className = 'shop-tab flex-1 px-4 py-2 rounded-lg bg-purple-500/30 text-white font-bold';
+            populateShop();
+        }
+
+        function populateShop() {
+            shopContent.innerHTML = '';
+            
+            if (currentShopTab === 'skins') {
+                Object.keys(skins).forEach(key => {
+                    const skin = skins[key];
+                    if (skin.price === 0) return; // Skip free skin
+                    
+                    const div = document.createElement('div');
+                    div.className = `flex items-center justify-between p-4 rounded-xl ${
+                        skin.unlocked ? 'bg-green-500/20 border-2 border-green-500/30' : 'bg-white/5 border-2 border-white/10'
+                    }`;
+                    
+                    div.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <span class="text-3xl">${skin.emoji}</span>
+                            <div class="text-left">
+                                <div class="text-white font-bold">${skin.name}</div>
+                                <div class="text-xs text-gray-300">${skin.unlocked ? '✓ Possédé' : `💰 ${skin.price} coins`}</div>
+                            </div>
+                        </div>
+                        ${!skin.unlocked ? `
+                            <button onclick="buySkin('${key}')" class="px-4 py-2 bg-gradient-to-r from-green-400 to-emerald-500 text-white font-bold rounded-lg text-sm active:scale-95 transition-transform">
+                                Acheter
+                            </button>
+                        ` : '<span class="text-green-400 font-bold">✓</span>'}
+                    `;
+                    
+                    shopContent.appendChild(div);
+                });
+            } else if (currentShopTab === 'boosts') {
+                Object.keys(boosts).forEach(key => {
+                    const boost = boosts[key];
+                    
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center justify-between p-4 rounded-xl bg-white/5 border-2 border-purple-500/30';
+                    
+                    div.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <span class="text-3xl">${boost.emoji}</span>
+                            <div class="text-left">
+                                <div class="text-white font-bold">${boost.name}</div>
+                                <div class="text-xs text-gray-300">${boost.description}</div>
+                                <div class="text-xs text-purple-400">💰 ${boost.price} coins | Stock: ${boost.quantity}</div>
+                            </div>
+                        </div>
+                        <button onclick="buyBoost('${key}')" class="px-4 py-2 bg-gradient-to-r from-purple-400 to-purple-600 text-white font-bold rounded-lg text-sm active:scale-95 transition-transform">
+                            Acheter
+                        </button>
+                    `;
+                    
+                    shopContent.appendChild(div);
+                });
+            }
+        }
+
+        function buySkin(skinKey) {
+            const skin = skins[skinKey];
+            if (coins >= skin.price && !skin.unlocked) {
+                coins -= skin.price;
+                skin.unlocked = true;
+                updateCoinsDisplay();
+                populateShop();
+                playSound('score');
+                alert(`🎉 Skin ${skin.name} ${skin.emoji} débloqué !`);
+            } else if (skin.unlocked) {
+                alert('Tu possèdes déjà ce skin !');
+            } else {
+                alert(`Pas assez de coins ! Il te faut ${skin.price - coins} coins de plus.`);
+            }
+        }
+
+        function buyBoost(boostKey) {
+            const boost = boosts[boostKey];
+            if (coins >= boost.price) {
+                coins -= boost.price;
+                boost.quantity++;
+                updateCoinsDisplay();
+                populateShop();
+                playSound('score');
+                alert(`✅ ${boost.emoji} ${boost.name} acheté ! Stock: ${boost.quantity}`);
+            } else {
+                alert(`Pas assez de coins ! Il te faut ${boost.price - coins} coins de plus.`);
+            }
+        }
+
+        // Show/hide shop
+        shopBtn.addEventListener('click', () => {
+            populateShop();
+            shopOverlay.style.display = 'flex';
+        });
+
+        closeShopBtn.addEventListener('click', () => {
+            shopOverlay.style.display = 'none';
+        });
 
         // Show/hide skins menu
         skinsBtn.addEventListener('click', () => {
@@ -676,6 +856,9 @@
 
         // Make setDifficulty global
         window.setDifficulty = setDifficulty;
+        window.setShopTab = setShopTab;
+        window.buySkin = buySkin;
+        window.buyBoost = buyBoost;
 
         // Initialize skins menu
         populateSkinsMenu();
