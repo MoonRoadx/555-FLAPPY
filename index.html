@@ -149,7 +149,7 @@
             </div>
 
             <!-- Skins menu overlay -->
-            <div id="skinsOverlay" class="absolute inset-0 bg-black/70 backdrop-blur-sm flex-col items-center justify-center hidden overflow-y-auto" style="z-index: 200;">
+            <div id="skinsOverlay" class="absolute inset-0 bg-black/70 backdrop-blur-sm flex-col items-center justify-center hidden overflow-y-auto" style="z-index: 200;" onclick="if(event.target === this) { this.style.display = 'none'; }">
                 <div class="text-center space-y-3 p-3 w-full max-w-sm mx-auto my-4">
                     <div class="flex items-center justify-between mb-3">
                         <h2 class="text-xl font-bold text-white">Skins 👕</h2>
@@ -163,7 +163,7 @@
             </div>
 
             <!-- Shop overlay -->
-            <div id="shopOverlay" class="absolute inset-0 bg-black/70 backdrop-blur-sm flex-col items-center justify-center hidden overflow-y-auto" style="z-index: 200;">
+            <div id="shopOverlay" class="absolute inset-0 bg-black/70 backdrop-blur-sm flex-col items-center justify-center hidden overflow-y-auto" style="z-index: 200;" onclick="if(event.target === this) { this.style.display = 'none'; }">
                 <div class="text-center space-y-3 p-3 w-full max-w-sm mx-auto my-4">
                     <div class="flex items-center justify-between mb-3">
                         <h2 class="text-xl font-bold text-white">Shop 🛒</h2>
@@ -191,7 +191,7 @@
             </div>
 
             <!-- Leaderboard overlay -->
-            <div id="leaderboardOverlay" class="absolute inset-0 bg-black/70 backdrop-blur-sm flex-col items-center justify-center hidden overflow-y-auto" style="z-index: 200;">
+            <div id="leaderboardOverlay" class="absolute inset-0 bg-black/70 backdrop-blur-sm flex-col items-center justify-center hidden overflow-y-auto" style="z-index: 200;" onclick="if(event.target === this) { this.style.display = 'none'; }">
                 <div class="text-center space-y-3 p-3 w-full max-w-sm mx-auto my-4">
                     <div class="flex items-center justify-between mb-3">
                         <h2 class="text-xl font-bold text-white">🏅 Leaderboard</h2>
@@ -199,8 +199,14 @@
                     </div>
                     
                     <div class="mb-3">
-                        <input type="text" id="playerNameInput" placeholder="Ton pseudo..." maxlength="15"
-                               class="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-center text-sm placeholder-gray-400 focus:outline-none focus:border-green-400">
+                        <div class="flex gap-2">
+                            <input type="text" id="playerNameInput" placeholder="Ton pseudo..." maxlength="15"
+                                   class="flex-1 px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-center text-sm placeholder-gray-400 focus:outline-none focus:border-green-400">
+                            <button id="saveNameBtn" class="px-4 py-2 bg-gradient-to-r from-green-400 to-emerald-500 text-white font-bold rounded-lg text-sm active:scale-95 transition-transform">
+                                ✓
+                            </button>
+                        </div>
+                        <p id="nameStatus" class="text-xs text-gray-400 mt-1"></p>
                     </div>
                     
                     <div id="leaderboardContent" class="space-y-2 max-h-96 overflow-y-auto">
@@ -266,6 +272,8 @@
         const shopContent = document.getElementById('shopContent');
         const leaderboardContent = document.getElementById('leaderboardContent');
         const playerNameInput = document.getElementById('playerNameInput');
+        const saveNameBtn = document.getElementById('saveNameBtn');
+        const nameStatus = document.getElementById('nameStatus');
         const boostsSelector = document.getElementById('boostsSelector');
         const activeBoostsDisplay = document.getElementById('activeBoostsDisplay');
         const pauseScore = document.getElementById('pauseScore');
@@ -492,7 +500,31 @@
 
         if (playerName) {
             playerNameInput.value = playerName;
+            nameStatus.textContent = `Pseudo enregistré: ${playerName}`;
+            nameStatus.className = 'text-xs text-green-400 mt-1';
         }
+
+        // Save player name
+        saveNameBtn.addEventListener('click', () => {
+            const name = playerNameInput.value.trim();
+            if (name.length >= 3) {
+                playerName = name;
+                localStorage.setItem('flappy-player-name', name);
+                nameStatus.textContent = `✓ Pseudo enregistré: ${name}`;
+                nameStatus.className = 'text-xs text-green-400 mt-1';
+                playSound('score');
+            } else {
+                nameStatus.textContent = '⚠️ Minimum 3 caractères';
+                nameStatus.className = 'text-xs text-red-400 mt-1';
+            }
+        });
+
+        // Enter key to save name
+        playerNameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                saveNameBtn.click();
+            }
+        });
 
         function updateCoinsDisplay() {
             coinsDisplay.textContent = coins;
